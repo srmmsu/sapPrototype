@@ -1,0 +1,173 @@
+The command with the correct certificate and key file names has worked :
+"serve -s build --listen 3000 --ssl-cert localhost+2.pem --ssl-key localhost+2-key.pem".
+Now I am observing the following strange behaviour with wifi on :
+The chrome tab with url " https://192.168.1.8:3000/" in the address bar is loading 
+properly with the message " Service Worker Status: controlled " and remains controlled
+as many times as the page is reloaded. But then when I open the DevTools in the tab,
+even if i do not do anything with DevTools, any reload of the tab leads to the display
+of the message " Service Worker Status: not controlled ". While the DevTools Console
+before this reload says SW "activated and running", after a single reload it says SW null.
+Any number of reloads with DevTools on shows the page not controlled but if the DevTools
+are closed, the a reload of the tab shows " Service Worker Status: controlled " again.
+How do I interpret this behaviour ? I cant proceed to offline testing until this is fixed.
+
+
+1. While wifi is on, I load the chrome tab with the url " https://192.168.1.8:3000/" in the
+    address bar, it loads properly with the message " Service Worker Status: controlled " and
+    remains controlled as many times as the page is reloaded.
+
+2. I avoid opening DevTools at all due to its observed interfering with the testing. 
+
+3. Then I turn wifi off on the laptop and reload the chrome tab. It results in the
+    following error " This site can’t be reached; The webpage at https://192.168.1.8:3000/
+    might be temporarily down or it may have moved permanently to a new web address;
+    ERR_FAILED"
+    
+4. Do you want me to consider the above 1-2-3 as successful testing of PWA behaviour 
+    and move on ?
+    
+After this change also, the behaviour of the chrome tab with the url " https://192.168.1.8:3000/" in the address bar when wifi goes down has not changed a bit. Am I unable to make even this simplest CRA PWA work ? Is there any more reason to go round and round without any progress ? 
+
+I have followed your new test schedule :  
+
+1. Wi-Fi ON
+
+2. open https://192.168.1.8:3000
+
+3. reload once
+
+4. stop the server (Ctrl+C)
+
+5. reload
+
+6. The result again was it results in the following error :
+    " This site can’t be reached; The webpage at https://192.168.1.8:3000/
+    might be temporarily down or it may have moved permanently to a new web address;
+    ERR_FAILED"  
+    
+reload → network request → WiFi off → network fails → browser error  
+What Success Looks Like
+Condition	Result
+WiFi ON	normal page
+WiFi OFF	React shell loads
+New tab offline	React shell loads
+
+That means the PWA shell is fully operational.
+
+Where You Are Now
+
+You have already solved the hardest parts:
+
+✔ HTTPS on LAN
+✔ trusted certificate
+✔ service worker installation
+✔ service worker control
+✔ React build pipeline
+
+Only the navigation fallback rule remains.
+
+After This Works
+
+We will immediately implement the core mechanism for your SAP licensing system:
+
+Server Reachability Detector
+
+The UI will show:
+
+SERVER STATUS : ONLINE
+SERVER STATUS : OFFLINE
+
+based on periodic backend pings.
+
+This becomes the trigger for offline credit logic.
+
+If you want, I can also show you one tiny addition (3 lines) that makes the PWA load instantly even if the backend server is slow, which is extremely useful for systems like your SAP portal.
+
+When first loaded, the T2 page says "Service Worker Status: controlled". The Devtools 
+Console command "caches.open("sap-shell-v1").then(c => c.keys()).then(console.log)"
+gives the two line response "
+"Promise {<pending>}
+(2) [Request, Request]"
+If reloaded, T2 page now says "Service Worker Status: not controlled" and the DevTools 
+Console response remains the same two lines as above.
+
+After that, in DevTools Application, I unregister SW and clear local data, close devtools 
+and reload T2. The T2 page shows "Service Worker Status: controlled". Then I reload T2 
+and get the error page with the following display :
+"This site can’t be reached
+The webpage at https://192.168.1.8:3000/ might be temporarily down or it may have moved permanently to a new web address.
+ERR_FAILED"
+So, whether DevTools is on or not makes a difference in the behaviour of T2, though 
+throug out this testing the server has been up and running.
+
+Ok. Then let us decide to do T1 testing on the Ubuntu laptop on which i am developing the system and do T2 testing on a different connected device in the same lan.
+I have rebooted my ubuntu laptop. I ran "npm run build" and " serve -s build --listen 3000 --ssl-cert localhost+2.pem --ssl-key localhost+2-key.pem " in the terminal to start the 
+CRA server.  Then I opened a new window of Chrome browser and typed " https://localhost:3000 " in a new tab. I got the following page in that tab:
+"This site can’t be reached
+The webpage at https://localhost:3000/ might be temporarily down or it may have moved permanently to a new web address.
+ERR_FAILED".
+I have not started DevTools and the wifi and the server are up. I am bwildered.
+
+When I started the server, it responded with the following :
+"Serving!                               
+   │                                          │
+   │   - Local:    https://localhost:3000     │   
+   
+   │   - Network:  https://192.168.1.8:3000
+   "
+"ss -tulpn | grep 3000" in the terminal gets response 
+" tcp   LISTEN 0      511                                   *:3000             *:*    users:(("MainThread",pid=7353,fd=25))  "    
+
+serve -s build --listen 3000 starts the http server and responds with the following :
+   ┌─────────────────────────────────────────┐
+   │                                         │
+   │   Serving!                              │
+   │                                         │
+   │   - Local:    http://localhost:3000     │
+   │   - Network:  http://192.168.1.8:3000   │
+   │                                         │
+   │   Copied local address to clipboard!    │
+   │                                         │
+   └─────────────────────────────────────────┘
+and the chrome tab with url http://localhost:3000  shows the content :
+SAP Prototype
+Offline PWA Test
+If you see this page even after internet is OFF, PWA works.
+
+Current Time: 12:29:38 PM
+
+Status: App Loaded Successfully
+
+Service Worker Status: controlled
+
+The files "localhost+2.pem; localhost+2-key.pem " do exist in the frontend directory.
+When the server is started with 
+"serve -s build \
+--listen tcp://0.0.0.0:3000 \
+--ssl-cert localhost+2.pem \
+--ssl-key localhost+2-key.pem",
+the localhost "https://localhost:3000/" still shows the "ERR_FAILED" page.
+
+
+node https-server.js command is generating the following errors :
+/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/path-to-regexp/dist/index.js:96
+            throw new PathError(`Missing parameter name at index ${index}`, str);
+            ^
+
+PathError [TypeError]: Missing parameter name at index 1: *; visit https://git.new/pathToRegexpError for info
+    at name (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/path-to-regexp/dist/index.js:96:19)
+    at parse (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/path-to-regexp/dist/index.js:113:68)
+    at pathToRegexp (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/path-to-regexp/dist/index.js:267:58)
+    at Object.match (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/path-to-regexp/dist/index.js:237:30)
+    at matcher (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/router/lib/layer.js:86:23)
+    at new Layer (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/router/lib/layer.js:93:62)
+    at router.route (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/router/index.js:428:17)
+    at app.route (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/express/lib/application.js:257:22)
+    at app.<computed> [as get] (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/node_modules/express/lib/application.js:478:22)
+    at Object.<anonymous> (/home/sujatha/folders/devang/fpLicensing/sap-prototype/frontend/https-server.js:10:5) {
+  originalPath: '*'
+}
+
+Node.js v24.12.0
+
+
