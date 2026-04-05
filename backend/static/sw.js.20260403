@@ -1,0 +1,88 @@
+const CACHE = "sap-shell-v8";
+
+self.addEventListener("install", event => {
+  self.skipWaiting();  
+});
+
+// Toggle debug here (true/false)
+const DEBUG = true;
+
+// Send messages to all clients (React app)
+function sendMessageToClients(message) {
+  if (!DEBUG) return;
+
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage(message);
+    });
+  });
+}
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE) {
+            return caches.delete(key);
+          }
+        })
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", event => {
+
+  const req = event.request;
+
+  // ❌ Skip API + manifest
+  if (
+    req.url.includes("/api/") ||
+    req.url.includes("manifest.json")
+  ) {
+    return;
+  }
+
+  // ✅ Navigation requests
+  if (req.mode === "navigate") {
+
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          sendMessageToClients("NAV NETWORK: " + req.url);
+          return res;
+        })
+        .catch(() => {
+          sendMessageToClients("NAV CACHE: " + req.url);
+          return caches.match("/");
+        })
+    );
+
+    return;
+  }
+
+  // ✅ Static assets
+  event.respondWith(
+    caches.match(req).then(res => {
+
+      if (res) {
+        sendMessageToClients("CACHE: " + req.url);
+        return res;
+      }
+
+      return fetch(req).then(networkRes => {
+
+        sendMessageToClients("NETWORK: " + req.url);
+
+        return caches.open(CACHE).then(cache => {
+          cache.put(req, networkRes.clone());
+          return networkRes;
+        });
+
+      });
+
+    })
+  );
+
+});

@@ -1,0 +1,80 @@
+const CACHE = "sap-shell-v4";
+
+self.addEventListener("message", event => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener("install", event => {
+
+  self.skipWaiting();
+
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.add("/"))
+  );
+
+});
+
+self.addEventListener("activate", event => {
+
+  event.waitUntil(self.clients.claim());
+
+});
+
+
+self.addEventListener("fetch", event => {
+
+  const req = event.request;
+
+  console.log("SW intercept:", req.url);
+
+  // ❌ DO NOT cache API or manifest
+  if (
+    req.url.includes("/api/") ||
+    req.url.includes("manifest.json")
+  ) {
+    return;
+  }
+
+  // Navigation requests
+    if (req.mode === "navigate") {
+
+      event.respondWith(
+        fetch(req)
+          .then(res => {
+            console.log("SW NAV NETWORK:", req.url);
+            return res;
+          })
+          .catch(() => {
+            console.log("SW NAV CACHE:", req.url);
+            return caches.match("/");
+          })
+      );
+
+      return;
+    }  
+
+  // Static assets
+    event.respondWith(
+      caches.match(req).then(res => {
+
+        if (res) {
+          console.log("SW CACHE:", req.url);
+          return res;
+        }
+
+        return fetch(req).then(networkRes => {
+
+          console.log("SW NETWORK:", req.url);
+
+          return caches.open("sap-shell-v4").then(cache => {
+            cache.put(req, networkRes.clone());
+            return networkRes;
+          });
+
+        });
+
+      })
+    );
+});
