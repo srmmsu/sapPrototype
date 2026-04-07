@@ -21,6 +21,8 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static' / 'static',
 ]
 
+APPEND_SLASH = False
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -112,6 +114,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+#STATICFILES_DIRS = [
+#    os.path.join(BASE_DIR, "frontend/build/static"),
+#    os.path.join(BASE_DIR, "frontend/build"),
+#]
 
 
 # Internationalization

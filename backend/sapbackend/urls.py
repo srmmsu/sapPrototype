@@ -17,8 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include, re_path
 from api.views import index, ping_view, service_worker
+from django.views.static import serve
 from django.conf import settings
-from django.conf.urls.static import static
+import os
 
 urlpatterns = [
     path('admin/', admin.site.urls),    
@@ -27,12 +28,19 @@ urlpatterns = [
     path("api/", include("api.urls")),
     path('api/ping/', ping_view),
 
-    # Service Worker (CRITICAL)
+    # Service Worker
     path('sw.js', service_worker),
 
-    # React app (MUST BE LAST)
+    # ✅ Manifest (served from backend/static)
+    path(
+        "manifest.json",
+        serve,
+        {
+            "path": "manifest.json",
+            "document_root": os.path.join(settings.BASE_DIR, "static"),
+        },
+    ),
+
+    # React fallback
     re_path(r'^.*$', index),
 ]
-
-#urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
-
